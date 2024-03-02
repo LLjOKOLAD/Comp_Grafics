@@ -77,7 +77,7 @@ def brezn_line(image, x0, y0, x1, y1,color):
 
 
 
-name = './/models//natsuki.obj' #Название модели
+name = './/models//12221_Cat_v1_l3.obj' #Название модели
 vertices = []
 wares = []
 f = open(name)
@@ -97,6 +97,8 @@ while line :
         wares.append([a,b])
         wares.append([b,c])
         wares.append([a,c])
+
+f.close()
 
 image_matrix = np.zeros((1000, 1000, 3), dtype = np.uint8)
 
