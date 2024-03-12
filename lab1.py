@@ -1,6 +1,6 @@
-from email.mime import image
 
 import numpy as np
+from random import randint
 from PIL import Image
 from math import *
 
@@ -66,6 +66,8 @@ def brezn_line(image, x0, y0, x1, y1,color):
             derror -= 2 * (x1 - x0)
             y += y_update
 
+#image_matrix = np.zeros((200, 200, 3), dtype = np.uint8)
+
 #dotted_line(image_matrix, 0, 0, 200, 200, 100,255)
 
 #dotted_line_2(image_matrix, 0, 0, 200, 200, 255)
@@ -77,7 +79,7 @@ def brezn_line(image, x0, y0, x1, y1,color):
 
 
 
-name = './/models//12221_Cat_v1_l3.obj' #Название модели
+name = './/models//model_2.obj' #Название модели
 vertices = []
 wares = []
 f = open(name)
@@ -96,14 +98,15 @@ while line :
         c = int(ware[2].split("/")[0])
         wares.append([a,b])
         wares.append([b,c])
-        wares.append([a,c])
+        wares.append([c,a])
 
 f.close()
 
 image_matrix = np.zeros((1000, 1000, 3), dtype = np.uint8)
+image_matrix_wareframe = np.zeros((1000, 1000, 3), dtype = np.uint8)
 
-x_offset = 180 # Отступы, поменять если выдаёт ошибку
-y_offset = 0
+x_offset = 200 # Отступы, поменять если выдаёт ошибку
+y_offset = -200
 x_scale = 1000 # Масштаб, поменять если модель не видно
 y_scale = 1000
 
@@ -117,6 +120,8 @@ OldMin = min(map(min,vertices))
 
 
 
+
+
 for i in range(0,len(wares)):
     x0 = int(vertices[wares[i][0]-1][0]*x_scale)
     y0 = int(vertices[wares[i][0]-1][1]*y_scale)
@@ -127,7 +132,69 @@ for i in range(0,len(wares)):
     x1 = mapNorm(x1, OldMin * x_scale, OldMax * x_scale, 0, 999) + x_offset
     y1 = mapNorm(y1, OldMin * y_scale, OldMax * y_scale, 0, 999) + y_offset
 
-    brezn_line(image_matrix, x0, y0, x1, y1,255)
+    brezn_line(image_matrix_wareframe, x0, y0, x1, y1,255)
+
+img = Image.fromarray(np.flip(image_matrix_wareframe), mode = 'RGB')
+img.save(name + 'wareframe'+'.png')
+
+def BarCoord(x, y, x0, y0, x1, y1, x2, y2):
+    denom = (x0 - x2) * (y1 - y2) - (x1 - x2) * (y0 - y2)
+    if denom == 0:
+        return False
+    lambda0 = ((x - x2) * (y1 - y2) - (x1 - x2) * (y - y2)) / denom
+    lambda1 = ((x0 - x2) * (y - y2) - (x - x2) * (y0 - y2)) / denom
+    lambda2 = 1.0 - lambda0 - lambda1
+    if (lambda0 >= 0 and lambda1 >= 0 and lambda2 >= 0):
+        return True
+    return False
+
+
+
+for i in range(0,int(len(wares)),3):
+    progress = len(wares)
+    if i % 100 == 0:
+        print(i, "/", progress)
+
+
+    x0 = vertices[wares[i][0]-1][0]
+    y0 = vertices[wares[i][0]-1][1]
+    x1 = vertices[wares[i+1][0]-1][0]
+    y1 = vertices[wares[i+1][0]-1][1]
+    x2 = vertices[wares[i+2][0]-1][0]
+    y2 = vertices[wares[i+2][0]-1][1]
+
+    x0 = mapNorm(x0, OldMin , OldMax , 0, 999)
+    y0 = mapNorm(y0, OldMin , OldMax , 0, 999)
+    x1 = mapNorm(x1, OldMin , OldMax , 0, 999)
+    y1 = mapNorm(y1, OldMin , OldMax , 0, 999)
+    x2 = mapNorm(x2, OldMin , OldMax , 0, 999)
+    y2 = mapNorm(y2, OldMin , OldMax , 0, 999)
+
+    xmin = min(x0, x1, x2)
+    if (xmin < 0): xmin = 0
+
+    ymin = min(y0, y1, y2)
+    if (ymin < 0) : ymin = 0
+
+    xmax = max(x0, x1, x2)
+    if(xmax > 999) : xmax = 999
+
+    ymax = max(y0, y1, y2)
+    if(ymax > 999) : ymax = 999
+
+
+    color = [randint(0,255), randint(0,255), randint(0,255)]
+    for j in range(xmin, xmax):
+        for k in range(ymin, ymax):
+            if BarCoord(j, k, x0, y0, x1, y1, x2, y2):
+                image_matrix[k+y_offset][j+x_offset] = color
+
+
+
+
+
+
+
 
 
 img = Image.fromarray(np.flip(image_matrix), mode = 'RGB')
