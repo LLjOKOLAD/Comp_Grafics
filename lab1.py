@@ -228,6 +228,7 @@ for i in range(0,int(len(wares)),3):
         x2 = x_scale * x2 / z2 + x_offset
         y2 = y_scale * y2 / z2 + y_offset
 
+
         #x0 = mapNorm(x0, OldMin, OldMax, 0, 999)
         #y0 = mapNorm(y0, OldMin, OldMax, 0, 999)
         #x1 = mapNorm(x1, OldMin, OldMax, 0, 999)
