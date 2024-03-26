@@ -41,7 +41,7 @@ def x_loop_line(image, x0, y0, x1, y1, color):
             image[y, x] = color
 
 
-def brezn_line(image, x0, y0, x1, y1,color):
+def brezn_line(image, x0, y0, x1, y1, color):
     xchange = False
     if (abs(x0 - x1) < abs(y0 - y1)):
         x0, y0 = y0, x0
@@ -79,7 +79,7 @@ def brezn_line(image, x0, y0, x1, y1,color):
 
 
 
-name = './/models//model_2.obj' #Название модели
+name = './/models//model_1.obj' #Название модели
 vertices = []
 wares = []
 f = open(name)
@@ -102,51 +102,75 @@ while line :
 
 f.close()
 
+width = 1000
+height = 1000
+
 image_matrix = np.zeros((1000, 1000, 3), dtype = np.uint8)
 image_matrix_wareframe = np.zeros((1000, 1000, 3), dtype = np.uint8)
 
-x_offset = 200 # Отступы, поменять если выдаёт ошибку
-y_offset = -200
+
+
+x_offset = 0.005 # Отступы, поменять если выдаёт ошибку
+y_offset = 0.005
+z_offset = 0
+alpha = 0
+betta = 2
+gamma = 0
 x_scale = 1000 # Масштаб, поменять если модель не видно
 y_scale = 1000
 
 def mapNorm(OldValue,OldMin,OldMax,NewMin,NewMax):
     OldRange = (OldMax - OldMin)
     NewRange = (NewMax - NewMin)
-    return int((((OldValue - OldMin) * NewRange) / OldRange) + NewMin)
+    return (((OldValue - OldMin) * NewRange) / OldRange) + NewMin
 
-OldMax = max(map(max,vertices))
-OldMin = min(map(min,vertices))
+OldMax = max(map(max,vertices)) + max(x_offset, y_offset)
+OldMin = min(map(min,vertices)) + max(x_offset, y_offset)
 
 
 
 
 
 for i in range(0,len(wares)):
-    x0 = int(vertices[wares[i][0]-1][0]*x_scale)
-    y0 = int(vertices[wares[i][0]-1][1]*y_scale)
-    x1 = int(vertices[wares[i][1]-1][0]*x_scale)
-    y1 = int(vertices[wares[i][1]-1][1]*y_scale)
-    x0 = mapNorm(x0, OldMin * x_scale, OldMax * x_scale, 0, 999) + x_offset
-    y0 = mapNorm(y0, OldMin * y_scale, OldMax * y_scale, 0, 999) + y_offset
-    x1 = mapNorm(x1, OldMin * x_scale, OldMax * x_scale, 0, 999) + x_offset
-    y1 = mapNorm(y1, OldMin * y_scale, OldMax * y_scale, 0, 999) + y_offset
+    x0 = int((vertices[wares[i][0]-1][0] + x_offset) * x_scale)
+    y0 = int((vertices[wares[i][0]-1][1] + y_offset) * y_scale)
+    x1 = int((vertices[wares[i][1]-1][0] + x_offset) * x_scale)
+    y1 = int((vertices[wares[i][1]-1][1] + y_offset) * y_scale)
+    x0 = int(mapNorm(x0, OldMin * x_scale, OldMax * x_scale, 0, 999))
+    y0 = int(mapNorm(y0, OldMin * y_scale, OldMax * y_scale, 0, 999))
+    x1 = int(mapNorm(x1, OldMin * x_scale, OldMax * x_scale, 0, 999))
+    y1 = int(mapNorm(y1, OldMin * y_scale, OldMax * y_scale, 0, 999))
 
     brezn_line(image_matrix_wareframe, x0, y0, x1, y1,255)
 
 img = Image.fromarray(np.flip(image_matrix_wareframe), mode = 'RGB')
 img.save(name + 'wareframe'+'.png')
 
+
 def BarCoord(x, y, x0, y0, x1, y1, x2, y2):
     denom = (x0 - x2) * (y1 - y2) - (x1 - x2) * (y0 - y2)
     if denom == 0:
-        return False
+        return -1, -1, -1
     lambda0 = ((x - x2) * (y1 - y2) - (x1 - x2) * (y - y2)) / denom
     lambda1 = ((x0 - x2) * (y - y2) - (x - x2) * (y0 - y2)) / denom
     lambda2 = 1.0 - lambda0 - lambda1
-    if (lambda0 >= 0 and lambda1 >= 0 and lambda2 >= 0):
-        return True
-    return False
+
+    return lambda0, lambda1, lambda2
+
+
+z_buffer = np.zeros((1000, 1000), dtype = np.float32)
+z_buffer[0:1000, 0:1000] = np.inf
+
+
+
+
+m1 = np.array([[1, 0, 0], [0, cos(alpha), sin(alpha)], [0, -sin(alpha), cos(alpha)]], dtype = np.float32)
+m2 = np.array([[cos(betta), 0, sin(betta)], [0, 1, 0], [-sin(betta), 0, cos(betta)]], dtype = np.float32)
+m3 = np.array([[cos(gamma), sin(gamma), 0], [-sin(gamma), cos(gamma), 0], [0, 0, 1]], dtype = np.float32)
+
+R = np.matmul(np.matmul(m1, m2), m3)
+
+
 
 
 
@@ -158,36 +182,83 @@ for i in range(0,int(len(wares)),3):
 
     x0 = vertices[wares[i][0]-1][0]
     y0 = vertices[wares[i][0]-1][1]
+    z0 = vertices[wares[i][0]-1][2]
     x1 = vertices[wares[i+1][0]-1][0]
     y1 = vertices[wares[i+1][0]-1][1]
+    z1 = vertices[wares[i+1][0]-1][2]
     x2 = vertices[wares[i+2][0]-1][0]
     y2 = vertices[wares[i+2][0]-1][1]
+    z2 = vertices[wares[i+2][0]-1][2]
 
-    x0 = mapNorm(x0, OldMin , OldMax , 0, 999)
-    y0 = mapNorm(y0, OldMin , OldMax , 0, 999)
-    x1 = mapNorm(x1, OldMin , OldMax , 0, 999)
-    y1 = mapNorm(y1, OldMin , OldMax , 0, 999)
-    x2 = mapNorm(x2, OldMin , OldMax , 0, 999)
-    y2 = mapNorm(y2, OldMin , OldMax , 0, 999)
+    xyz = np.matrix([[x0, x1, x2], [y0, y1, y2], [z0, z1 , z2 ]], dtype = np.float32)
 
-    xmin = min(x0, x1, x2)
-    if (xmin < 0): xmin = 0
-
-    ymin = min(y0, y1, y2)
-    if (ymin < 0) : ymin = 0
-
-    xmax = max(x0, x1, x2)
-    if(xmax > 999) : xmax = 999
-
-    ymax = max(y0, y1, y2)
-    if(ymax > 999) : ymax = 999
+    xyz = np.matmul(R, xyz) + np.matrix([[x_offset, x_offset, x_offset], [y_offset, y_offset, y_offset], [z_offset, z_offset, z_offset]], dtype = np.float32)
 
 
-    color = [randint(0,255), randint(0,255), randint(0,255)]
-    for j in range(xmin, xmax):
-        for k in range(ymin, ymax):
-            if BarCoord(j, k, x0, y0, x1, y1, x2, y2):
-                image_matrix[k+y_offset][j+x_offset] = color
+
+    x0 = xyz[0, 0]
+    y0 = xyz[1, 0]
+    z0 = xyz[2, 0]
+    x1 = xyz[0, 1]
+    y1 = xyz[1, 1]
+    z1 = xyz[2, 1]
+    x2 = xyz[0, 2]
+    y2 = xyz[1, 2]
+    z2 = xyz[2, 2]
+
+
+
+
+    v1 = np.array([x1 - x2, y1 - y2, z1 - z2])
+    v2 = np.array([x1 - x0, y1 - y0, z1 - z0])
+
+    norm = np.cross(v1, v2)
+
+    l = np.array([0, 0, 1])
+
+    angle_between = ((norm[0] * l[0]) + (norm[1] * l[1]) + (norm[2] * l[2])/(sqrt(norm[0] * norm[0] + norm[1] * norm[1] + norm[2] * norm[2]) * sqrt(l[0] * l[0] + l[1] * l[1] + l[2] * l[2])))
+
+    if angle_between < 0:
+
+
+        x0 = x_scale * x0 / z0 + x_offset
+        y0 = y_scale * y0 / z0 + y_offset
+        x1 = x_scale * x1 / z1 + x_offset
+        y1 = y_scale * y1 / z1 + y_offset
+        x2 = x_scale * x2 / z2 + x_offset
+        y2 = y_scale * y2 / z2 + y_offset
+
+        #x0 = mapNorm(x0, OldMin, OldMax, 0, 999)
+        #y0 = mapNorm(y0, OldMin, OldMax, 0, 999)
+        #x1 = mapNorm(x1, OldMin, OldMax, 0, 999)
+        #y1 = mapNorm(y1, OldMin, OldMax, 0, 999)
+        #x2 = mapNorm(x2, OldMin, OldMax, 0, 999)
+        #y2 = mapNorm(y2, OldMin, OldMax, 0, 999)
+
+        xmin = floor(min(x0, x1, x2))
+        if (xmin < 0): xmin = 0
+
+        ymin = floor(min(y0, y1, y2))
+        if (ymin < 0) : ymin = 0
+
+        xmax = ceil(max(x0, x1, x2))
+        if(xmax > 999) : xmax = 999
+
+        ymax = ceil(max(y0, y1, y2))
+        if(ymax > 999) : ymax = 999
+
+
+
+
+        color = [-255 * angle_between, 0, 0]
+        for j in range(xmin, xmax):
+            for k in range(ymin, ymax):
+                l0, l1, l2 = BarCoord(j, k, x0, y0, x1, y1, x2, y2)
+                if (l0 >= 0 and l1 >= 0 and l2 >= 0):
+                    z_val = l0 * z0 + l1 * z1 + l2 * z2
+                    if(z_val < z_buffer[k][j]):
+                        image_matrix[k][j] = color
+                        z_buffer[k][j] = z_val
 
 
 
