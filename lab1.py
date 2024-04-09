@@ -110,41 +110,48 @@ image_matrix_wareframe = np.zeros((1000, 1000, 3), dtype = np.uint8)
 
 
 
-x_offset = 0.005 # Отступы, поменять если выдаёт ошибку
-y_offset = 0.005
-z_offset = 0
+x_offset = 0 # Отступы, поменять если выдаёт ошибку
+y_offset = -0.04
+z_offset = 1
+x_offset_screen = 500
+y_offset_screen = 500
+
 alpha = 0
-betta = 2
+betta = -120
 gamma = 0
-x_scale = 1000 # Масштаб, поменять если модель не видно
-y_scale = 1000
-
-def mapNorm(OldValue,OldMin,OldMax,NewMin,NewMax):
-    OldRange = (OldMax - OldMin)
-    NewRange = (NewMax - NewMin)
-    return (((OldValue - OldMin) * NewRange) / OldRange) + NewMin
-
-OldMax = max(map(max,vertices)) + max(x_offset, y_offset)
-OldMin = min(map(min,vertices)) + max(x_offset, y_offset)
+x_scale = 7000 # Масштаб, поменять если модель не видно
+y_scale = 7000
 
 
 
+OldMaxX = max(map(max,vertices))
+OldMinX = min(map(min,vertices))
+OldMaxY = max(map(max,vertices))
+OldMinY = min(map(min,vertices))
 
+alpha = alpha * np.pi / 180
+betta = betta * np.pi / 180
+gamma = gamma * np.pi / 180
 
-for i in range(0,len(wares)):
-    x0 = int((vertices[wares[i][0]-1][0] + x_offset) * x_scale)
-    y0 = int((vertices[wares[i][0]-1][1] + y_offset) * y_scale)
-    x1 = int((vertices[wares[i][1]-1][0] + x_offset) * x_scale)
-    y1 = int((vertices[wares[i][1]-1][1] + y_offset) * y_scale)
-    x0 = int(mapNorm(x0, OldMin * x_scale, OldMax * x_scale, 0, 999))
-    y0 = int(mapNorm(y0, OldMin * y_scale, OldMax * y_scale, 0, 999))
-    x1 = int(mapNorm(x1, OldMin * x_scale, OldMax * x_scale, 0, 999))
-    y1 = int(mapNorm(y1, OldMin * y_scale, OldMax * y_scale, 0, 999))
-
-    brezn_line(image_matrix_wareframe, x0, y0, x1, y1,255)
-
-img = Image.fromarray(np.flip(image_matrix_wareframe), mode = 'RGB')
-img.save(name + 'wareframe'+'.png')
+#def mapNorm(OldValue,OldMin,OldMax,NewMin,NewMax):
+#    OldRange = (OldMax - OldMin)
+#    NewRange = (NewMax - NewMin)
+#    return (((OldValue - OldMin) * NewRange) / OldRange) + NewMin
+#
+#for i in range(0,len(wares)):
+#    x0 = int((vertices[wares[i][0]-1][0] + x_offset) * x_scale)
+#    y0 = int((vertices[wares[i][0]-1][1] + y_offset) * y_scale)
+#    x1 = int((vertices[wares[i][1]-1][0] + x_offset) * x_scale)
+#    y1 = int((vertices[wares[i][1]-1][1] + y_offset) * y_scale)
+#    x0 = int(mapNorm(x0, OldMin * x_scale, OldMax * x_scale, 0, 999))
+#    y0 = int(mapNorm(y0, OldMin * y_scale, OldMax * y_scale, 0, 999))
+#    x1 = int(mapNorm(x1, OldMin * x_scale, OldMax * x_scale, 0, 999))
+#    y1 = int(mapNorm(y1, OldMin * y_scale, OldMax * y_scale, 0, 999))
+#
+#    brezn_line(image_matrix_wareframe, x0, y0, x1, y1,255)
+#
+#img = Image.fromarray(np.flip(image_matrix_wareframe), mode = 'RGB')
+#img.save(name + 'wareframe'+'.png')
 
 
 def BarCoord(x, y, x0, y0, x1, y1, x2, y2):
@@ -163,7 +170,7 @@ z_buffer[0:1000, 0:1000] = np.inf
 
 
 
-
+#Матрица поворота
 m1 = np.array([[1, 0, 0], [0, cos(alpha), sin(alpha)], [0, -sin(alpha), cos(alpha)]], dtype = np.float32)
 m2 = np.array([[cos(betta), 0, sin(betta)], [0, 1, 0], [-sin(betta), 0, cos(betta)]], dtype = np.float32)
 m3 = np.array([[cos(gamma), sin(gamma), 0], [-sin(gamma), cos(gamma), 0], [0, 0, 1]], dtype = np.float32)
@@ -173,10 +180,11 @@ R = np.matmul(np.matmul(m1, m2), m3)
 
 
 
+print(OldMinX, OldMaxX, OldMinY, OldMaxY)
 
 for i in range(0,int(len(wares)),3):
     progress = len(wares)
-    if i % 100 == 0:
+    if i % 1000 == 0:
         print(i, "/", progress)
 
 
@@ -221,20 +229,14 @@ for i in range(0,int(len(wares)),3):
     if angle_between < 0:
 
 
-        x0 = x_scale * x0 / z0 + x_offset
-        y0 = y_scale * y0 / z0 + y_offset
-        x1 = x_scale * x1 / z1 + x_offset
-        y1 = y_scale * y1 / z1 + y_offset
-        x2 = x_scale * x2 / z2 + x_offset
-        y2 = y_scale * y2 / z2 + y_offset
+        x0 = x_scale * x0/z0 + x_offset_screen
+        y0 = y_scale * y0/z0 + y_offset_screen
+        x1 = x_scale * x1/z1 + x_offset_screen
+        y1 = y_scale * y1/z1 + y_offset_screen
+        x2 = x_scale * x2/z2 + x_offset_screen
+        y2 = y_scale * y2/z2 + y_offset_screen
 
 
-        #x0 = mapNorm(x0, OldMin, OldMax, 0, 999)
-        #y0 = mapNorm(y0, OldMin, OldMax, 0, 999)
-        #x1 = mapNorm(x1, OldMin, OldMax, 0, 999)
-        #y1 = mapNorm(y1, OldMin, OldMax, 0, 999)
-        #x2 = mapNorm(x2, OldMin, OldMax, 0, 999)
-        #y2 = mapNorm(y2, OldMin, OldMax, 0, 999)
 
         xmin = floor(min(x0, x1, x2))
         if (xmin < 0): xmin = 0
